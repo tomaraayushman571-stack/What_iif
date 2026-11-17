@@ -1,0 +1,288 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global reusable primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'displayName', 'photoURL', 'createdAt', 'updatedAt']) &&
+        data.uid is string && data.uid == userId && data.uid == request.auth.uid && isValidId(data.uid) &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120 &&
+        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500)) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidAuthorProfile(ap) {
+      return ap is map &&
+        ap.keys().hasAll([
+          'name',
+          'worldview',
+          'recurringMotifs',
+          'pacingStyle',
+          'characterPhilosophy',
+          'previousWorksSummary',
+          'signatureEndingBias',
+          'groundingSources'
+        ]) &&
+        ap.keys().hasOnly([
+          'name',
+          'worldview',
+          'recurringMotifs',
+          'pacingStyle',
+          'characterPhilosophy',
+          'previousWorksSummary',
+          'signatureEndingBias',
+          'groundingSources'
+        ]) &&
+        ap.name is string && ap.name.size() >= 1 && ap.name.size() <= 160 &&
+        ap.worldview is string && ap.worldview.size() >= 1 && ap.worldview.size() <= 4000 &&
+        ap.recurringMotifs is list && ap.recurringMotifs.size() <= 15 &&
+        (ap.recurringMotifs.size() == 0 || (ap.recurringMotifs[0] is string && ap.recurringMotifs[0].size() <= 200)) &&
+        ap.pacingStyle is string && ap.pacingStyle.size() >= 1 && ap.pacingStyle.size() <= 2000 &&
+        ap.characterPhilosophy is string && ap.characterPhilosophy.size() >= 1 && ap.characterPhilosophy.size() <= 3000 &&
+        ap.previousWorksSummary is string && ap.previousWorksSummary.size() >= 1 && ap.previousWorksSummary.size() <= 6000 &&
+        ap.signatureEndingBias is string && ap.signatureEndingBias.size() >= 1 && ap.signatureEndingBias.size() <= 2000 &&
+        ap.groundingSources is list && ap.groundingSources.size() <= 15 &&
+        (ap.groundingSources.size() == 0 || (ap.groundingSources[0] is map && ap.groundingSources[0].uri is string && ap.groundingSources[0].uri.size() <= 600));
+    }
+
+    function isValidStoryAnalysis(data, storyId) {
+      return data.keys().hasAll([
+          'id',
+          'ownerId',
+          'title',
+          'medium',
+          'creatorName',
+          'sourceType',
+          'logline',
+          'synopsis',
+          'themes',
+          'turningPoints',
+          'characters',
+          'authorProfile',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id',
+          'ownerId',
+          'title',
+          'medium',
+          'creatorName',
+          'sourceType',
+          'uploadedFileName',
+          'logline',
+          'synopsis',
+          'themes',
+          'turningPoints',
+          'characters',
+          'authorProfile',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.id is string && data.id == storyId && isValidId(data.id) &&
+        data.ownerId is string && data.ownerId == request.auth.uid && isValidId(data.ownerId) &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+        data.medium in ['movie', 'series', 'anime', 'manga', 'novel', 'uploaded_video'] &&
+        data.creatorName is string && data.creatorName.size() >= 1 && data.creatorName.size() <= 160 &&
+        data.sourceType in ['title', 'upload'] &&
+        (!('uploadedFileName' in data) || (data.uploadedFileName is string && data.uploadedFileName.size() <= 260)) &&
+        data.logline is string && data.logline.size() >= 1 && data.logline.size() <= 2000 &&
+        data.synopsis is string && data.synopsis.size() >= 1 && data.synopsis.size() <= 12000 &&
+        data.themes is list && data.themes.size() <= 12 &&
+        (data.themes.size() == 0 || (data.themes[0] is string && data.themes[0].size() <= 120)) &&
+        data.turningPoints is list && data.turningPoints.size() <= 20 &&
+        (data.turningPoints.size() == 0 || (data.turningPoints[0] is map && data.turningPoints[0].title is string && data.turningPoints[0].title.size() <= 240)) &&
+        data.characters is list && data.characters.size() <= 25 &&
+        (data.characters.size() == 0 || (data.characters[0] is map && data.characters[0].name is string && data.characters[0].name.size() <= 160)) &&
+        isValidAuthorProfile(data.authorProfile) &&
+        data.status in ['analyzed', 'archived'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidStoryBranch(data, storyId, branchId) {
+      return data.keys().hasAll([
+          'id',
+          'storyId',
+          'ownerId',
+          'pivotTitle',
+          'userChange',
+          'divergenceDepth',
+          'authorReasoning',
+          'butterflyChain',
+          'alternateNarrative',
+          'canonVsAltered',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id',
+          'storyId',
+          'ownerId',
+          'pivotTitle',
+          'userChange',
+          'divergenceDepth',
+          'authorReasoning',
+          'butterflyChain',
+          'alternateNarrative',
+          'canonVsAltered',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.id is string && data.id == branchId && isValidId(data.id) &&
+        data.storyId is string && data.storyId == storyId && isValidId(data.storyId) &&
+        data.ownerId is string && data.ownerId == request.auth.uid && isValidId(data.ownerId) &&
+        data.pivotTitle is string && data.pivotTitle.size() >= 1 && data.pivotTitle.size() <= 240 &&
+        data.userChange is string && data.userChange.size() >= 1 && data.userChange.size() <= 3000 &&
+        data.divergenceDepth in ['ripple', 'cascade', 'inversion'] &&
+        data.authorReasoning is string && data.authorReasoning.size() >= 1 && data.authorReasoning.size() <= 8000 &&
+        data.butterflyChain is list && data.butterflyChain.size() <= 15 &&
+        (data.butterflyChain.size() == 0 || (data.butterflyChain[0] is map && data.butterflyChain[0].step is string && data.butterflyChain[0].step.size() <= 240)) &&
+        data.alternateNarrative is string && data.alternateNarrative.size() >= 1 && data.alternateNarrative.size() <= 30000 &&
+        data.canonVsAltered is map &&
+        data.canonVsAltered.keys().hasAll(['canonOutcome', 'alteredOutcome', 'thematicShift']) &&
+        data.canonVsAltered.keys().hasOnly(['canonOutcome', 'alteredOutcome', 'thematicShift']) &&
+        data.canonVsAltered.canonOutcome is string && data.canonVsAltered.canonOutcome.size() <= 3000 &&
+        data.canonVsAltered.alteredOutcome is string && data.canonVsAltered.alteredOutcome.size() <= 3000 &&
+        data.canonVsAltered.thematicShift is string && data.canonVsAltered.thematicShift.size() <= 3000 &&
+        data.status in ['generated', 'pinned'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false;
+      allow create: if isEmailVerified() &&
+        isValidId(userId) &&
+        request.auth.uid == userId &&
+        isValidUserProfile(incoming(), userId) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isEmailVerified() &&
+        isValidId(userId) &&
+        request.auth.uid == userId &&
+        isValidUserProfile(incoming(), userId) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    match /stories/{storyId} {
+      allow get: if isSignedIn() && isValidId(storyId) && (resource == null || existing().ownerId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isEmailVerified() &&
+        isValidId(storyId) &&
+        isValidStoryAnalysis(incoming(), storyId) &&
+        incoming().status == 'analyzed' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isEmailVerified() &&
+        isValidId(storyId) &&
+        isValidStoryAnalysis(incoming(), storyId) &&
+        existing().ownerId == request.auth.uid &&
+        existing().status != 'archived' &&
+        incoming().id == existing().id &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          (
+            incoming().status == 'analyzed' &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title',
+              'logline',
+              'synopsis',
+              'themes',
+              'turningPoints',
+              'characters',
+              'authorProfile',
+              'updatedAt'
+            ])
+          ) ||
+          (
+            incoming().status == 'archived' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+          )
+        );
+      allow delete: if isEmailVerified() && isValidId(storyId) && existing().ownerId == request.auth.uid;
+
+      match /branches/{branchId} {
+        allow get: if isSignedIn() &&
+          isValidId(storyId) &&
+          isValidId(branchId) &&
+          exists(/databases/$(database)/documents/stories/$(storyId)) &&
+          get(/databases/$(database)/documents/stories/$(storyId)).data.ownerId == request.auth.uid;
+        allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+        allow create: if isEmailVerified() &&
+          isValidId(storyId) &&
+          isValidId(branchId) &&
+          isValidStoryBranch(incoming(), storyId, branchId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          exists(/databases/$(database)/documents/stories/$(storyId)) &&
+          get(/databases/$(database)/documents/stories/$(storyId)).data.ownerId == request.auth.uid;
+        allow update: if isEmailVerified() &&
+          isValidId(storyId) &&
+          isValidId(branchId) &&
+          isValidStoryBranch(incoming(), storyId, branchId) &&
+          existing().ownerId == request.auth.uid &&
+          incoming().id == existing().id &&
+          incoming().storyId == existing().storyId &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          exists(/databases/$(database)/documents/stories/$(storyId)) &&
+          get(/databases/$(database)/documents/stories/$(storyId)).data.ownerId == request.auth.uid &&
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'authorReasoning',
+              'butterflyChain',
+              'alternateNarrative',
+              'canonVsAltered',
+              'updatedAt'
+            ])
+          );
+        allow delete: if isEmailVerified() &&
+          isValidId(storyId) &&
+          isValidId(branchId) &&
+          exists(/databases/$(database)/documents/stories/$(storyId)) &&
+          get(/databases/$(database)/documents/stories/$(storyId)).data.ownerId == request.auth.uid;
+      }
+    }
+  }
+}

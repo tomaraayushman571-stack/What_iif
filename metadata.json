@@ -1,0 +1,6 @@
+{
+  "name": "AuteurFork",
+  "description": "Analyze movies, series, anime, manga, novels, or uploaded episodes through the original creator's mind to explore authentic counterfactual story paths.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

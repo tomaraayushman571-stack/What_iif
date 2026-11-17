@@ -1,0 +1,234 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile stored in Firestore without sensitive PII.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name for the workspace",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Avatar URL",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last profile update timestamp"
+        }
+      },
+      "required": ["uid", "displayName", "createdAt", "updatedAt"]
+    },
+    "StoryAnalysis": {
+      "title": "StoryAnalysis",
+      "description": "Analyzed movie, series, anime, manga, novel, or uploaded video along with the creator's cognitive profile.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "medium": {
+          "type": "string",
+          "enum": ["movie", "series", "anime", "manga", "novel", "uploaded_video"]
+        },
+        "creatorName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "sourceType": {
+          "type": "string",
+          "enum": ["title", "upload"]
+        },
+        "uploadedFileName": {
+          "type": "string",
+          "maxLength": 260
+        },
+        "logline": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "synopsis": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 12000
+        },
+        "themes": {
+          "type": "array",
+          "description": "Core thematic motifs up to 12 items"
+        },
+        "turningPoints": {
+          "type": "array",
+          "description": "Key pivot moments in the narrative up to 20 items"
+        },
+        "characters": {
+          "type": "array",
+          "description": "Key characters and motivations up to 25 items"
+        },
+        "authorProfile": {
+          "type": "object",
+          "description": "Structured analysis of the writer/author's prior works and cognitive tendencies"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["analyzed", "archived"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "title",
+        "medium",
+        "creatorName",
+        "sourceType",
+        "logline",
+        "synopsis",
+        "themes",
+        "turningPoints",
+        "characters",
+        "authorProfile",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "StoryBranch": {
+      "title": "StoryBranch",
+      "description": "Counterfactual alternate narrative generated through the original writer's cognitive lens.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "storyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "pivotTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "userChange": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 3000
+        },
+        "divergenceDepth": {
+          "type": "string",
+          "enum": ["ripple", "cascade", "inversion"]
+        },
+        "authorReasoning": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "butterflyChain": {
+          "type": "array",
+          "description": "Causal chain of altered events up to 15 steps"
+        },
+        "alternateNarrative": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30000
+        },
+        "canonVsAltered": {
+          "type": "object",
+          "description": "Comparison between canonical and altered outcomes"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["generated", "pinned"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "storyId",
+        "ownerId",
+        "pivotTitle",
+        "userChange",
+        "divergenceDepth",
+        "authorReasoning",
+        "butterflyChain",
+        "alternateNarrative",
+        "canonVsAltered",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User workspace profile keyed by Firebase Auth UID"
+    },
+    "/stories/{storyId}": {
+      "schema": { "$ref": "#/entities/StoryAnalysis" },
+      "description": "Saved story and writer-psychology analyses owned by a user"
+    },
+    "/stories/{storyId}/branches/{branchId}": {
+      "schema": { "$ref": "#/entities/StoryBranch" },
+      "description": "Alternate counterfactual story branches belonging to a parent story"
+    }
+  }
+}
