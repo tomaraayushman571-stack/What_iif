@@ -123,7 +123,14 @@ export default function App() {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (err) {
-      setAuthError(err instanceof Error ? err.message : 'Unable to complete Google sign-in.');
+      const msg = err instanceof Error ? err.message : 'Unable to complete Google sign-in.';
+      if (msg.includes('auth/unauthorized-domain')) {
+        setAuthError(
+          'This domain is not yet in Firebase Authorized Domains. Add your Vercel domain under Firebase Console → Authentication → Settings → Authorized domains, or continue in guest mode.'
+        );
+      } else {
+        setAuthError(msg);
+      }
     }
   };
 

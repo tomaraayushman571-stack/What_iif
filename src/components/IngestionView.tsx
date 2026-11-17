@@ -225,25 +225,44 @@ export function IngestionView({ onAnalysisComplete, userId }: IngestionViewProps
         body: formData,
       });
 
-      const data = await response.json();
+      if (response.status === 413) {
+        throw new Error(
+          'This file exceeds the 4.5 MB serverless upload limit on Vercel. Try uploading an .srt/.txt script or a shorter clip under 4 MB.'
+        );
+      }
+
+      const rawText = await response.text();
+      let data: Record<string, unknown> = {};
+      try {
+        data = rawText ? (JSON.parse(rawText) as Record<string, unknown>) : {};
+      } catch {
+        throw new Error(rawText.slice(0, 200) || 'Unexpected response from server.');
+      }
+
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to analyze uploaded file.');
+        throw new Error(
+          typeof data.error === 'string' ? data.error : 'Failed to analyze uploaded file.'
+        );
       }
 
       const newStory: StoryAnalysis = {
         id: `story_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         ownerId: userId,
-        title: data.title || uploadTitle.trim() || selectedFile.name,
+        title: (data.title as string) || uploadTitle.trim() || selectedFile.name,
         medium: uploadMedium,
-        creatorName: data.creatorName || uploadCreator.trim() || 'Inferred Storyteller',
+        creatorName: (data.creatorName as string) || uploadCreator.trim() || 'Inferred Storyteller',
         sourceType: 'upload',
-        uploadedFileName: data.uploadedFileName || selectedFile.name,
-        logline: data.logline || '',
-        synopsis: data.synopsis || '',
-        themes: Array.isArray(data.themes) ? data.themes : [],
-        turningPoints: Array.isArray(data.turningPoints) ? data.turningPoints : [],
-        characters: Array.isArray(data.characters) ? data.characters : [],
-        authorProfile: data.authorProfile,
+        uploadedFileName: (data.uploadedFileName as string) || selectedFile.name,
+        logline: (data.logline as string) || '',
+        synopsis: (data.synopsis as string) || '',
+        themes: Array.isArray(data.themes) ? (data.themes as string[]) : [],
+        turningPoints: Array.isArray(data.turningPoints)
+          ? (data.turningPoints as StoryAnalysis['turningPoints'])
+          : [],
+        characters: Array.isArray(data.characters)
+          ? (data.characters as StoryAnalysis['characters'])
+          : [],
+        authorProfile: data.authorProfile as StoryAnalysis['authorProfile'],
         status: 'analyzed',
       };
 
